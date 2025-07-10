@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Title Prediction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-select, .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus, .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 15px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .result-card {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .prediction-badge {
+            background: linear-gradient(135deg, var(--success-color), #20c997);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .confidence-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .confidence-fill {
+            background: linear-gradient(90deg, var(--success-color), #20c997);
+            height: 100%;
+            transition: width 1s ease;
+            border-radius: 10px;
+        }
+
+        .top-predictions {
+            background: var(--light-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+
+        .probability-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-alert {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 1rem;
+        }
+
+        .input-group-text {
+            background: var(--light-color);
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .input-group .form-select {
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem 0;
+            }
+            
+            .card {
+                margin: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>
+                            Job Title Prediction System
+                        </h1>
+                        <p class="mb-0 mt-2">AI-powered career path prediction based on your profile</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="predictionForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="gender" class="form-label">
+                                        <i class="fas fa-user me-2"></i>Gender
+                                    </label>
+                                    <select class="form-select" id="gender" name="gender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="M">Male</option>
+                                        <option value="F">Female</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="faculty" class="form-label">
+                                        <i class="fas fa-graduation-cap me-2"></i>Faculty
+                                    </label>
+                                    <select class="form-select" id="faculty" name="faculty" required>
+                                        <option value="">Select Faculty</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="Commerce">Commerce</option>
+                                        <option value="Medicine">Medicine</option>
+                                        <option value="Pharmacy">Pharmacy</option>
+                                        <option value="Arts">Arts</option>
+                                        <option value="Science">Science</option>
+                                        <option value="Law">Law</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="certification_field" class="form-label">
+                                        <i class="fas fa-certificate me-2"></i>Certification Field
+                                    </label>
+                                    <select class="form-select" id="certification_field" name="certification_field" required>
+                                        <option value="">Select Certification Field</option>
+                                        <option value="Backend Development">Backend Development</option>
+                                        <option value="Database Developmnet">Database Development</option>
+                                        <option value="Graphic Design">Graphic Design</option>
+                                        <option value="Network">Network</option>
+                                        <option value="Blockchain">Blockchain</option>
+                                        <option value="Data Engineering">Data Engineering</option>
+                                        <option value="Machine Learning">Machine Learning</option>
+                                        <option value="Deep learning">Deep Learning</option>
+                                        <option value="NLP">NLP</option>
+                                        <option value="Database Management">Database Management</option>
+                                        <option value="Software Engineering">Software Engineering</option>
+                                        <option value="Frontend Development">Frontend Development</option>
+                                        <option value="Full Stack Development">Full Stack Development</option>
+                                        <option value="Data Analysis">Data Analysis</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Computer Vision">Computer Vision</option>
+                                        <option value="Data Science">Data Science</option>
+                                        <option value="AI">AI</option>
+                                        <option value="Mobile Development">Mobile Development</option>
+                                        <option value="Cybersecurity">Cybersecurity</option>
+                                        <option value="DevOps">DevOps</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="certification_source" class="form-label">
+                                        <i class="fas fa-university me-2"></i>Certification Source
+                                    </label>
+                                    <select class="form-select" id="certification_source" name="certification_source" required>
+                                        <option value="">Select Certification Source</option>
+                                        <option value="LinkedIn Learning">LinkedIn Learning</option>
+                                        <option value="DataCamp">DataCamp</option>
+                                        <option value="Codecademy">Codecademy</option>
+                                        <option value="Coursera">Coursera</option>
+                                        <option value="Pluralsight">Pluralsight</option>
+                                        <option value="Udacity">Udacity</option>
+                                        <option value="edX">edX</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="company_type" class="form-label">
+                                        <i class="fas fa-building me-2"></i>Company Type
+                                    </label>
+                                    <select class="form-select" id="company_type" name="company_type" required>
+                                        <option value="">Select Company Type</option>
+                                        <option value="Local">Local</option>
+                                        <option value="International">International</option>
+                                        <option value="National">National</option>
+                                        <option value="Multinational">Multinational</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="company_location" class="form-label">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Company Location
+                                    </label>
+                                    <select class="form-select" id="company_location" name="company_location" required>
+                                        <option value="">Select Company Location</option>
+                                        <option value="Egypt">Egypt</option>
+                                        <option value="USA">USA</option>
+                                        <option value="KSA">KSA</option>
+                                        <option value="England">England</option>
+                                        <option value="Tunisa">Tunisa</option>
+                                        <option value="Farance">Farance</option>
+                                        <option value="Canda">Canda</option>
+                                        <option value="UEA">UEA</option>
+                                        <option value="Morocco">Morocco</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="job_category" class="form-label">
+                                        <i class="fas fa-tags me-2"></i>Job Category
+                                    </label>
+                                    <select class="form-select" id="job_category" name="job_category" required>
+                                        <option value="">Select Job Category</option>
+                                        <option value="Cybersecurity">Cybersecurity</option>
+                                        <option value="Machine Learning">Machine Learning</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Data Analysis">Data Analysis</option>
+                                        <option value="Video Editing">Video Editing</option>
+                                        <option value="UI/UX Design">UI/UX Design</option>
+                                        <option value="Content Writing">Content Writing</option>
+                                        <option value="Digital Marketing">Digital Marketing</option>
+                                        <option value="Mobile App Development">Mobile App Development</option>
+                                        <option value="Graphic Design">Graphic Design</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="job_title" class="form-label">
+                                        <i class="fas fa-briefcase me-2"></i>Job Title
+                                    </label>
+                                    <select class="form-select" id="job_title" name="job_title" required>
+                                        <option value="">Select Job Title</option>
+                                        <option value="Backend Developer">Backend Developer</option>
+                                        <option value="Cloud Engineer">Cloud Engineer</option>
+                                        <option value="Data Analyst">Data Analyst</option>
+                                        <option value="Data Scientist">Data Scientist</option>
+                                        <option value="Database Administrator">Database Administrator</option>
+                                        <option value="DevOps Engineer">DevOps Engineer</option>
+                                        <option value="Frontend Developer">Frontend Developer</option>
+                                        <option value="Full Stack Developer">Full Stack Developer</option>
+                                        <option value="IT Support Specialist">IT Support Specialist</option>
+                                        <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                                        <option value="Mobile Developer">Mobile Developer</option>
+                                        <option value="QA Engineer">QA Engineer</option>
+                                        <option value="Security Analyst">Security Analyst</option>
+                                        <option value="Software Engineer">Software Engineer</option>
+                                        <option value="System Administrator">System Administrator</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-predict text-white">
+                                    <i class="fas fa-magic me-2"></i>Predict Job Title
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Loading Spinner -->
+                        <div class="loading" id="loading">
+                            <div class="spinner mb-3"></div>
+                            <p class="text-muted">Analyzing your profile...</p>
+                        </div>
+
+                        <!-- Error Alert -->
+                        <div class="alert alert-danger error-alert" id="errorAlert" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="errorMessage"></span>
+                        </div>
+
+                        <!-- Results -->
+                        <div class="result-card" id="resultCard">
+                            <div class="prediction-badge">
+                                <i class="fas fa-star me-2"></i>
+                                Recommended Job Title: <span id="predictedJobTitle"></span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Confidence Level</label>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="confidenceFill"></div>
+                                </div>
+                                <div class="text-center">
+                                    <span id="confidenceText" class="fw-bold"></span>
+                                </div>
+                            </div>
+
+                            <div class="top-predictions">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-list-ol me-2"></i>Top 3 Predictions
+                                </h5>
+                                <div id="topPredictions"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('errorAlert').style.display = 'none';
+            
+            // Collect form data
+            const formData = {
+                gender: document.getElementById('gender').value,
+                faculty: document.getElementById('faculty').value,
+                certification_field: document.getElementById('certification_field').value,
+                certification_source: document.getElementById('certification_source').value,
+                company_type: document.getElementById('company_type').value,
+                company_location: document.getElementById('company_location').value,
+                job_category: document.getElementById('job_category').value,
+                job_title: document.getElementById('job_title').value
+            };
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Display results
+                    document.getElementById('predictedJobTitle').textContent = result.predicted_job_title;
+                    document.getElementById('confidenceText').textContent = `${result.confidence}%`;
+                    document.getElementById('confidenceFill').style.width = `${result.confidence}%`;
+                    
+                    // Display top predictions
+                    const topPredictionsDiv = document.getElementById('topPredictions');
+                    topPredictionsDiv.innerHTML = '';
+                    
+                    result.top_3_predictions.forEach((prediction, index) => {
+                        const predictionItem = document.createElement('div');
+                        predictionItem.className = 'prediction-item';
+                        predictionItem.innerHTML = `
+                            <div>
+                                <span class="badge bg-secondary me-2">#${index + 1}</span>
+                                ${prediction.job_title}
+                            </div>
+                            <span class="probability-badge">${prediction.probability}%</span>
+                        `;
+                        topPredictionsDiv.appendChild(predictionItem);
+                    });
+                    
+                    document.getElementById('resultCard').style.display = 'block';
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = error.message || 'An error occurred while making the prediction.';
+                document.getElementById('errorAlert').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // Add form validation
+        const form = document.getElementById('predictionForm');
+        const inputs = form.querySelectorAll('select');
+        
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.value) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
