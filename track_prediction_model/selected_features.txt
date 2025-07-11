@@ -1,0 +1,10 @@
+Gender
+Faculty
+Certification_Field
+Certification_Soutce
+Company_Type
+Jop_Category
+Jop_Title
+Job_Cert_Alignment
+Is_Egypt
+Experience_Level
